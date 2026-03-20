@@ -37,17 +37,21 @@ export function ScrollZoomSection() {
   const containerRef = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({
     target: containerRef,
-    offset: ["start start", "end start"],
+    // Animation runs from when section enters viewport to when it leaves
+    offset: ["start end", "end start"],
   });
 
-  const spread = useTransform(scrollYProgress, [0, 0.6], [1, 0]);
-  const cardScale = useTransform(scrollYProgress, [0, 0.3, 0.6], [0.7, 1.05, 0.85]);
-  const containerOpacity = useTransform(scrollYProgress, [0, 0.08, 0.5, 0.65], [0, 1, 1, 0]);
-  const textScale = useTransform(scrollYProgress, [0, 0.35, 0.6], [0.5, 1, 1.8]);
-  const textOpacity = useTransform(scrollYProgress, [0.1, 0.3, 0.5, 0.65], [0, 1, 1, 0]);
+  // Cards start spread out, converge to center mid-scroll, then stay
+  const spread = useTransform(scrollYProgress, [0.1, 0.5], [1, 0]);
+  const cardScale = useTransform(scrollYProgress, [0.1, 0.35, 0.55], [0.65, 1.05, 0.9]);
+  const containerOpacity = useTransform(scrollYProgress, [0.05, 0.2, 0.65, 0.8], [0, 1, 1, 0]);
+
+  // Text zooms in as you scroll through
+  const textScale = useTransform(scrollYProgress, [0.15, 0.45, 0.6], [0.4, 1, 1.6]);
+  const textOpacity = useTransform(scrollYProgress, [0.15, 0.35, 0.55, 0.7], [0, 1, 1, 0]);
 
   return (
-    <section ref={containerRef} className="relative h-[80vh]">
+    <section ref={containerRef} className="relative h-[100vh]">
       <div className="sticky top-0 h-screen overflow-hidden flex items-center justify-center">
         <motion.div style={{ opacity: containerOpacity }} className="absolute inset-0 flex items-center justify-center">
           {ITEMS.map((item, i) => (

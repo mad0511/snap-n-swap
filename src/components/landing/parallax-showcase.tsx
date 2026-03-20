@@ -24,27 +24,28 @@ export function ParallaxShowcase() {
     offset: ["start end", "end start"],
   });
 
-  const x = useTransform(scrollYProgress, [0, 1], ["2%", "-75%"]);
-  const sectionOpacity = useTransform(scrollYProgress, [0, 0.1, 0.9, 1], [0, 1, 1, 0]);
+  // Horizontal scroll driven by vertical scroll — NOT sticky, just transform
+  const x = useTransform(scrollYProgress, [0.1, 0.9], ["5%", "-65%"]);
+  const sectionOpacity = useTransform(scrollYProgress, [0.05, 0.15, 0.85, 0.95], [0, 1, 1, 0]);
 
   return (
-    <section ref={containerRef} className="relative h-[100vh]">
-      <div className="sticky top-0 h-screen overflow-hidden flex flex-col justify-center">
-        <motion.div style={{ opacity: sectionOpacity }}>
-          <div className="px-6 md:px-12 mb-8">
-            <p className="label-upper text-mint mb-3">Trending now</p>
-            <h2 className="font-[family-name:var(--font-playfair)] text-[clamp(2rem,4vw,3.5rem)] font-medium tracking-display leading-[1.05]">
-              Scroll to explore<span className="text-mint">.</span>
-            </h2>
-          </div>
+    <section ref={containerRef} className="relative py-14 overflow-hidden">
+      <motion.div style={{ opacity: sectionOpacity }}>
+        {/* Header */}
+        <div className="px-6 md:px-12 mb-8">
+          <p className="label-upper text-mint mb-3">Trending now</p>
+          <h2 className="font-[family-name:var(--font-playfair)] text-[clamp(2rem,4vw,3.5rem)] font-medium tracking-display leading-[1.05]">
+            Scroll to explore<span className="text-mint">.</span>
+          </h2>
+        </div>
 
-          <motion.div style={{ x }} className="flex gap-3 md:gap-4">
-            {SHOWCASE_ITEMS.map((item, i) => (
-              <ParallaxCard key={i} item={item} index={i} scrollProgress={scrollYProgress} />
-            ))}
-          </motion.div>
+        {/* Horizontal strip — uses transform, no sticky */}
+        <motion.div style={{ x }} className="flex gap-3 md:gap-4">
+          {SHOWCASE_ITEMS.map((item, i) => (
+            <ParallaxCard key={i} item={item} index={i} scrollProgress={scrollYProgress} />
+          ))}
         </motion.div>
-      </div>
+      </motion.div>
     </section>
   );
 }
@@ -61,7 +62,7 @@ function ParallaxCard({
   const y = useTransform(
     scrollProgress,
     [0, 1],
-    [index % 2 === 0 ? 30 : -20, index % 2 === 0 ? -30 : 20]
+    [index % 2 === 0 ? 20 : -15, index % 2 === 0 ? -20 : 15]
   );
 
   return (

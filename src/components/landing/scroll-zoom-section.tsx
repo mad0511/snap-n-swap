@@ -47,7 +47,7 @@ export function ScrollZoomSection() {
   const textOpacity = useTransform(scrollYProgress, [0.1, 0.3, 0.5, 0.65], [0, 1, 1, 0]);
 
   return (
-    <section ref={containerRef} className="relative h-[120vh]">
+    <section ref={containerRef} className="relative h-[80vh]">
       <div className="sticky top-0 h-screen overflow-hidden flex items-center justify-center">
         <motion.div style={{ opacity: containerOpacity }} className="absolute inset-0 flex items-center justify-center">
           {ITEMS.map((item, i) => (

@@ -28,7 +28,7 @@ export function ParallaxShowcase() {
   const sectionOpacity = useTransform(scrollYProgress, [0, 0.1, 0.9, 1], [0, 1, 1, 0]);
 
   return (
-    <section ref={containerRef} className="relative h-[150vh]">
+    <section ref={containerRef} className="relative h-[100vh]">
       <div className="sticky top-0 h-screen overflow-hidden flex flex-col justify-center">
         <motion.div style={{ opacity: sectionOpacity }}>
           <div className="px-6 md:px-12 mb-8">

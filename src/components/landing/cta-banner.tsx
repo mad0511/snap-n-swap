@@ -9,9 +9,9 @@ export function CtaBanner() {
   const isInView = useInView(ref, { once: true, margin: "-100px" });
 
   return (
-    <section ref={ref} className="py-24 px-6">
+    <section ref={ref} className="py-14 px-6">
       <div className="mx-auto max-w-[1400px]">
-        <div className="hr-accent mb-24" />
+        <div className="hr-accent mb-14" />
 
         <div className="max-w-2xl mx-auto text-center">
           <motion.p
@@ -55,7 +55,7 @@ export function CtaBanner() {
           </motion.div>
         </div>
 
-        <div className="hr-accent mt-24" />
+        <div className="hr-accent mt-14" />
       </div>
     </section>
   );

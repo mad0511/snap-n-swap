@@ -14,7 +14,7 @@ export function FeaturedItems() {
   const isInView = useInView(ref, { once: true, margin: "-80px" });
 
   return (
-    <section ref={ref} className="py-32 px-6">
+    <section ref={ref} className="py-14 px-6">
       <div className="mx-auto max-w-[1400px]">
         {/* Header */}
         <div className="flex items-end justify-between mb-12">

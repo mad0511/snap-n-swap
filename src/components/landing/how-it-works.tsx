@@ -14,13 +14,13 @@ export function HowItWorks() {
   const isInView = useInView(ref, { once: true, margin: "-80px" });
 
   return (
-    <section ref={ref} className="py-20 px-6">
+    <section ref={ref} className="py-12 px-6">
       <div className="mx-auto max-w-[1400px]">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.7, ease: [0.76, 0, 0.24, 1] }}
-          className="mb-14"
+          className="mb-10"
         >
           <p className="label-upper text-mint mb-4">How it works</p>
           <h2 className="font-[family-name:var(--font-playfair)] text-[clamp(2rem,4vw,3.5rem)] font-medium tracking-display leading-[1.1] max-w-lg">

@@ -42,7 +42,7 @@ export function TextRevealSection() {
   });
 
   return (
-    <section ref={containerRef} className="relative py-24 md:py-32 px-6">
+    <section ref={containerRef} className="relative py-14 md:py-20 px-6">
       <div className="mx-auto max-w-[1000px]">
         <p className="label-upper text-mint mb-10">The concept</p>
         <div className="space-y-2 md:space-y-3">

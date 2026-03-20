@@ -4,7 +4,7 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Camera, Check, ArrowLeftRight, ArrowLeft, Loader2 } from "lucide-react";
+import { Camera, Check, ArrowLeftRight, ArrowLeft, Loader2, Scissors } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -38,7 +38,10 @@ export function UploadFlow() {
   const [openToSwaps, setOpenToSwaps] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [processedFile, setProcessedFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [removingBg, setRemovingBg] = useState(false);
+  const [bgRemoved, setBgRemoved] = useState(false);
 
   // Form state
   const [title, setTitle] = useState("");
@@ -50,24 +53,48 @@ export function UploadFlow() {
   const [color, setColor] = useState("");
   const [askingPrice, setAskingPrice] = useState("");
 
-  const handleFile = useCallback((file: File) => {
+  const handleFile = useCallback(async (file: File) => {
     if (!file.type.startsWith("image/")) return;
-    const url = URL.createObjectURL(file);
-    setPreview(url);
+    setError(null);
     setUploadedFile(file);
     setStep(2);
+
+    // Step 1: Remove background
+    setRemovingBg(true);
+    setBgRemoved(false);
+    const originalUrl = URL.createObjectURL(file);
+    setPreview(originalUrl);
+
+    try {
+      const { removeBackground } = await import("@imgly/background-removal");
+      const blob = await removeBackground(file, {
+        output: { format: "image/png", quality: 0.9 },
+      });
+      const cleanFile = new File([blob], "clean.png", { type: "image/png" });
+      const cleanUrl = URL.createObjectURL(cleanFile);
+      setPreview(cleanUrl);
+      setProcessedFile(cleanFile);
+      setBgRemoved(true);
+    } catch {
+      // If bg removal fails, use original
+      setProcessedFile(file);
+    } finally {
+      setRemovingBg(false);
+    }
+
+    // Step 2: AI analysis
     setAnalyzing(true);
-    setError(null);
   }, []);
 
-  // AI analysis — tries real API, falls back to mock
+  // AI analysis — runs after bg removal finishes
   useEffect(() => {
-    if (!analyzing || !uploadedFile) return;
+    if (!analyzing || !uploadedFile || removingBg) return;
 
     const analyzeImage = async () => {
       try {
+        const fileToAnalyze = processedFile || uploadedFile;
         const formData = new FormData();
-        formData.append("image", uploadedFile);
+        formData.append("image", fileToAnalyze);
 
         const res = await fetch("/api/identify", {
           method: "POST",
@@ -95,7 +122,7 @@ export function UploadFlow() {
     };
 
     analyzeImage();
-  }, [analyzing, uploadedFile]);
+  }, [analyzing, uploadedFile, processedFile, removingBg]);
 
   const handleDrop = useCallback(
     (e: React.DragEvent) => {
@@ -126,8 +153,9 @@ export function UploadFlow() {
     setError(null);
 
     try {
-      // Convert image to base64 data URL (no Vercel Blob credentials)
-      const imageUrl = await fileToBase64(uploadedFile);
+      // Use processed (bg-removed) file if available, otherwise original
+      const fileToUpload = processedFile || uploadedFile;
+      const imageUrl = await fileToBase64(fileToUpload);
 
       const res = await fetch("/api/items", {
         method: "POST",
@@ -263,11 +291,19 @@ export function UploadFlow() {
                       unoptimized
                     />
                   )}
-                  {analyzing && (
+                  {bgRemoved && !removingBg && (
+                    <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5 bg-black/60 backdrop-blur-sm text-white text-[10px] font-medium px-2 py-1 rounded-sm">
+                      <Scissors className="h-3 w-3" />
+                      Background removed
+                    </div>
+                  )}
+                  {(removingBg || analyzing) && (
                     <div className="absolute inset-0 bg-background/50 flex items-center justify-center">
                       <div className="text-center">
                         <div className="h-8 w-8 border-2 border-foreground/20 border-t-foreground rounded-full animate-spin mx-auto mb-3" />
-                        <p className="text-xs text-muted-foreground">Analyzing...</p>
+                        <p className="text-xs text-muted-foreground">
+                          {removingBg ? "Removing background..." : "Analyzing..."}
+                        </p>
                       </div>
                     </div>
                   )}

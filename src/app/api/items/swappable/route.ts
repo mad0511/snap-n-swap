@@ -79,6 +79,7 @@ function toFrontend(row: Record<string, unknown>) {
     views: row.views,
     userName: row.user_name,
     userImage: (row.user_image as string) ?? "",
+    clerkUserId: (row.clerk_user_id as string) ?? "",
     createdAt: row.created_at,
   };
 }

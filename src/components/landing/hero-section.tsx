@@ -5,7 +5,11 @@ import Image from "next/image";
 import Link from "next/link";
 import { motion, useScroll, useTransform, useMotionValue, useSpring } from "framer-motion";
 
-import type { MockItem } from "@/lib/mock-data";
+const HERO_IMAGES = [
+  { src: "https://images.unsplash.com/photo-1551028719-00167b16eac5?w=600&h=800&fit=crop", alt: "Leather jacket" },
+  { src: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600&h=800&fit=crop", alt: "Sneakers" },
+  { src: "https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=600&h=800&fit=crop", alt: "Dress" },
+];
 
 function MagneticButton({ children, href }: { children: React.ReactNode; href: string }) {
   const ref = useRef<HTMLAnchorElement>(null);
@@ -48,86 +52,45 @@ export function HeroSection() {
   const imgY3 = useTransform(scrollYProgress, [0, 1], [0, -90]);
 
   const [loaded, setLoaded] = useState(false);
-  const [heroImages, setHeroImages] = useState<{ src: string; alt: string }[]>([]);
-
   useEffect(() => {
     const t = setTimeout(() => setLoaded(true), 100);
-
-    // Fetch real items for hero images
-    fetch("/api/items")
-      .then((res) => res.json())
-      .then((data: MockItem[]) => {
-        if (data.length >= 3) {
-          setHeroImages(data.slice(0, 3).map((item) => ({
-            src: item.imageUrl,
-            alt: item.title,
-          })));
-        }
-      })
-      .catch(() => {});
-
     return () => clearTimeout(t);
   }, []);
 
   return (
     <section ref={containerRef} className="relative h-[100svh] overflow-hidden">
-      {/* Right side: product images — only shown when real items exist */}
-      {heroImages.length >= 3 && (
-        <div className="absolute top-14 right-0 bottom-0 w-[55%] hidden lg:flex gap-3 p-4 pr-6">
+      {/* Right side: showcase images — decorative only, not clickable */}
+      <div className="absolute top-14 right-0 bottom-0 w-[55%] hidden lg:flex gap-3 p-4 pr-6 pointer-events-none">
+        <motion.div
+          style={{ y: imgY1 }}
+          initial={{ opacity: 0, clipPath: "inset(100% 0 0 0)" }}
+          animate={loaded ? { opacity: 1, clipPath: "inset(0% 0 0 0)" } : {}}
+          transition={{ duration: 1, delay: 0.4, ease: [0.76, 0, 0.24, 1] }}
+          className="relative flex-1 rounded-sm overflow-hidden mt-8"
+        >
+          <Image src={HERO_IMAGES[0].src} alt={HERO_IMAGES[0].alt} fill className="object-cover" sizes="20vw" priority />
+        </motion.div>
+        <div className="flex-1 flex flex-col gap-3">
           <motion.div
-            style={{ y: imgY1 }}
+            style={{ y: imgY2 }}
             initial={{ opacity: 0, clipPath: "inset(100% 0 0 0)" }}
             animate={loaded ? { opacity: 1, clipPath: "inset(0% 0 0 0)" } : {}}
-            transition={{ duration: 1, delay: 0.4, ease: [0.76, 0, 0.24, 1] }}
-            className="relative flex-1 rounded-sm overflow-hidden mt-8"
+            transition={{ duration: 1, delay: 0.55, ease: [0.76, 0, 0.24, 1] }}
+            className="relative flex-1 rounded-sm overflow-hidden"
           >
-            <Image
-              src={heroImages[0].src}
-              alt={heroImages[0].alt}
-              fill
-              className="object-cover"
-              sizes="20vw"
-              priority
-              unoptimized={heroImages[0].src.startsWith("data:")}
-            />
+            <Image src={HERO_IMAGES[1].src} alt={HERO_IMAGES[1].alt} fill className="object-cover" sizes="20vw" />
           </motion.div>
-
-          <div className="flex-1 flex flex-col gap-3">
-            <motion.div
-              style={{ y: imgY2 }}
-              initial={{ opacity: 0, clipPath: "inset(100% 0 0 0)" }}
-              animate={loaded ? { opacity: 1, clipPath: "inset(0% 0 0 0)" } : {}}
-              transition={{ duration: 1, delay: 0.55, ease: [0.76, 0, 0.24, 1] }}
-              className="relative flex-1 rounded-sm overflow-hidden"
-            >
-              <Image
-                src={heroImages[1].src}
-                alt={heroImages[1].alt}
-                fill
-                className="object-cover"
-                sizes="20vw"
-                unoptimized={heroImages[1].src.startsWith("data:")}
-              />
-            </motion.div>
-            <motion.div
-              style={{ y: imgY3 }}
-              initial={{ opacity: 0, clipPath: "inset(100% 0 0 0)" }}
-              animate={loaded ? { opacity: 1, clipPath: "inset(0% 0 0 0)" } : {}}
-              transition={{ duration: 1, delay: 0.7, ease: [0.76, 0, 0.24, 1] }}
-              className="relative flex-[0.7] rounded-sm overflow-hidden"
-            >
-              <Image
-                src={heroImages[2].src}
-                alt={heroImages[2].alt}
-                fill
-                className="object-cover"
-                sizes="20vw"
-                unoptimized={heroImages[2].src.startsWith("data:")}
-              />
-            </motion.div>
-          </div>
+          <motion.div
+            style={{ y: imgY3 }}
+            initial={{ opacity: 0, clipPath: "inset(100% 0 0 0)" }}
+            animate={loaded ? { opacity: 1, clipPath: "inset(0% 0 0 0)" } : {}}
+            transition={{ duration: 1, delay: 0.7, ease: [0.76, 0, 0.24, 1] }}
+            className="relative flex-[0.7] rounded-sm overflow-hidden"
+          >
+            <Image src={HERO_IMAGES[2].src} alt={HERO_IMAGES[2].alt} fill className="object-cover" sizes="20vw" />
+          </motion.div>
         </div>
-      )}
+      </div>
 
       {/* Text — left side, vertically centered */}
       <motion.div

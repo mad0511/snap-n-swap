@@ -5,18 +5,21 @@ import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { Eye, ArrowLeftRight, ArrowLeft } from "lucide-react";
+import { useUser } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { SwapModal } from "./swap-modal";
 import type { MockItem } from "@/lib/mock-data";
 
 interface ItemDetailProps {
-  item: MockItem;
+  item: MockItem & { clerkUserId?: string };
   relatedItems: MockItem[];
 }
 
 export function ItemDetail({ item, relatedItems }: ItemDetailProps) {
+  const { user } = useUser();
   const [swapOpen, setSwapOpen] = useState(false);
+  const isOwnItem = user?.id && item.clerkUserId === user.id;
 
   const handleBuy = async () => {
     try {
@@ -102,19 +105,27 @@ export function ItemDetail({ item, relatedItems }: ItemDetailProps) {
 
             {/* Actions */}
             <div className="flex gap-2 mb-8">
-              <Button
-                onClick={handleBuy}
-                className="flex-1 bg-foreground text-background hover:opacity-80 py-3"
-              >
-                Buy now
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => setSwapOpen(true)}
-                className="px-4 py-3"
-              >
-                <ArrowLeftRight className="h-4 w-4" />
-              </Button>
+              {isOwnItem ? (
+                <div className="flex-1 text-center py-3 text-sm text-muted-foreground border border-border rounded-md">
+                  This is your listing
+                </div>
+              ) : (
+                <>
+                  <Button
+                    onClick={handleBuy}
+                    className="flex-1 bg-foreground text-background hover:opacity-80 py-3"
+                  >
+                    Buy now
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => setSwapOpen(true)}
+                    className="px-4 py-3"
+                  >
+                    <ArrowLeftRight className="h-4 w-4" />
+                  </Button>
+                </>
+              )}
             </div>
 
             <div className="hr-accent mb-8" />

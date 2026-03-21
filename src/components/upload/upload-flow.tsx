@@ -59,25 +59,35 @@ export function UploadFlow() {
     setUploadedFile(file);
     setStep(2);
 
-    // Step 1: Remove background
+    // Step 1: Extract clothing (remove person + background, keep only clothes)
     setRemovingBg(true);
     setBgRemoved(false);
     const originalUrl = URL.createObjectURL(file);
     setPreview(originalUrl);
 
     try {
-      const { removeBackground } = await import("@imgly/background-removal");
-      const blob = await removeBackground(file, {
-        output: { format: "image/png", quality: 0.9 },
-      });
-      const cleanFile = new File([blob], "clean.png", { type: "image/png" });
+      const { extractClothing } = await import("@/lib/clothing-extractor");
+      const blob = await extractClothing(file);
+      const cleanFile = new File([blob], "clothing.png", { type: "image/png" });
       const cleanUrl = URL.createObjectURL(cleanFile);
       setPreview(cleanUrl);
       setProcessedFile(cleanFile);
       setBgRemoved(true);
-    } catch {
-      // If bg removal fails, use original
-      setProcessedFile(file);
+    } catch (err) {
+      console.error("Clothing extraction failed, trying bg removal:", err);
+      // Fallback to simple background removal
+      try {
+        const { removeBackground } = await import("@imgly/background-removal");
+        const blob = await removeBackground(file, {
+          output: { format: "image/png", quality: 0.9 },
+        });
+        const cleanFile = new File([blob], "clean.png", { type: "image/png" });
+        setPreview(URL.createObjectURL(cleanFile));
+        setProcessedFile(cleanFile);
+        setBgRemoved(true);
+      } catch {
+        setProcessedFile(file);
+      }
     } finally {
       setRemovingBg(false);
     }
@@ -294,7 +304,7 @@ export function UploadFlow() {
                   {bgRemoved && !removingBg && (
                     <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5 bg-black/60 backdrop-blur-sm text-white text-[10px] font-medium px-2 py-1 rounded-sm">
                       <Scissors className="h-3 w-3" />
-                      Background removed
+                      Clothing extracted
                     </div>
                   )}
                   {(removingBg || analyzing) && (
@@ -302,7 +312,7 @@ export function UploadFlow() {
                       <div className="text-center">
                         <div className="h-8 w-8 border-2 border-foreground/20 border-t-foreground rounded-full animate-spin mx-auto mb-3" />
                         <p className="text-xs text-muted-foreground">
-                          {removingBg ? "Removing background..." : "Analyzing..."}
+                          {removingBg ? "Extracting clothing from image..." : "Analyzing..."}
                         </p>
                       </div>
                     </div>

@@ -4,6 +4,7 @@ import { supabase } from "@/lib/supabase";
 export async function GET(request: NextRequest) {
   const category = request.nextUrl.searchParams.get("category") ?? undefined;
   const similarTo = request.nextUrl.searchParams.get("similarTo") ?? undefined;
+  const excludeUser = request.nextUrl.searchParams.get("excludeUser") ?? undefined;
 
   try {
     let query = supabase
@@ -12,6 +13,10 @@ export async function GET(request: NextRequest) {
       .eq("status", "active")
       .eq("open_to_swaps", true)
       .order("created_at", { ascending: false });
+
+    if (excludeUser) {
+      query = query.neq("clerk_user_id", excludeUser);
+    }
 
     if (category && category !== "All") {
       query = query.eq("category", category);

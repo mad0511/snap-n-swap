@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import { ArrowLeftRight, Check, Loader2, Package } from "lucide-react";
+import { useUser } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -21,6 +22,7 @@ interface SwapModalProps {
 }
 
 export function SwapModal({ isOpen, onClose, targetItem }: SwapModalProps) {
+  const { user } = useUser();
   const [selectedItem, setSelectedItem] = useState<string | null>(null);
   const [message, setMessage] = useState("");
   const [submitted, setSubmitted] = useState(false);
@@ -31,7 +33,7 @@ export function SwapModal({ isOpen, onClose, targetItem }: SwapModalProps) {
   useEffect(() => {
     if (!isOpen) return;
     setLoading(true);
-    fetch("/api/items/swappable")
+    fetch(`/api/items/swappable${user?.id ? `?excludeUser=${user.id}` : ""}`)
       .then((res) => res.json())
       .then((data: MockItem[]) => {
         // Exclude the target item
@@ -52,8 +54,8 @@ export function SwapModal({ isOpen, onClose, targetItem }: SwapModalProps) {
         body: JSON.stringify({
           initiatorItemId: selectedItem,
           targetItemId: targetItem.id,
-          initiatorUserId: "current",
-          targetUserId: "owner",
+          initiatorUserId: user?.id || "unknown",
+          targetUserId: (targetItem as MockItem & { clerkUserId?: string }).clerkUserId || "unknown",
           message: message || null,
         }),
       });

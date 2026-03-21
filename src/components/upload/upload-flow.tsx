@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Camera, Check, ArrowLeftRight, ArrowLeft, Loader2, Scissors } from "lucide-react";
+import { useUser } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -29,6 +30,7 @@ interface AIResult {
 
 export function UploadFlow() {
   const router = useRouter();
+  const { user } = useUser();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [step, setStep] = useState(1);
   const [preview, setPreview] = useState<string | null>(null);
@@ -182,8 +184,9 @@ export function UploadFlow() {
           askingPrice: Number(askingPrice) || 0,
           imageUrl,
           openToSwaps,
-          userName: "You",
-          userImage: "",
+          userName: user?.fullName || user?.firstName || "Anonymous",
+          userImage: user?.imageUrl || "",
+          clerkUserId: user?.id || "",
         }),
       });
 

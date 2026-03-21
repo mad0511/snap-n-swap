@@ -10,7 +10,7 @@ export interface MockItem {
   estimatedPrice: number;
   askingPrice: number;
   imageUrl: string;
-  status: "active" | "sold" | "swapped";
+  status: "active" | "sold" | "swapped" | "removed";
   views: number;
   userName: string;
   userImage: string;

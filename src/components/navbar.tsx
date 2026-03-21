@@ -7,22 +7,35 @@ import { usePathname } from "next/navigation";
 import {
   SignInButton,
   SignUpButton,
-  UserButton,
   useAuth,
+  useUser,
+  useClerk,
 } from "@clerk/nextjs";
-import { Camera, Menu, X } from "lucide-react";
+import { Camera, Menu, X, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+  DropdownMenuLabel,
+} from "@/components/ui/dropdown-menu";
 
 const navLinks = [
   { href: "/marketplace", label: "Marketplace" },
   { href: "/upload", label: "Sell" },
-  { href: "/swaps", label: "Swaps" },
+  { href: "/messages", label: "Swaps" },
 ];
 
 export function Navbar() {
   const pathname = usePathname();
   const { isSignedIn } = useAuth();
+  const { user } = useUser();
+  const clerk = useClerk();
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  const initials = user?.firstName?.[0] ?? user?.emailAddresses?.[0]?.emailAddress?.[0]?.toUpperCase() ?? "?";
 
   return (
     <>
@@ -93,9 +106,52 @@ export function Navbar() {
                     <Camera className="h-3.5 w-3.5" />
                     Sell
                   </Link>
-                  <UserButton
-                    appearance={{ elements: { avatarBox: "h-7 w-7" } }}
-                  />
+
+                  <DropdownMenu>
+                    <DropdownMenuTrigger
+                      className="outline-none cursor-pointer"
+                      render={<button type="button" aria-label="User menu" />}
+                    >
+                      {user?.imageUrl ? (
+                        <img
+                          src={user.imageUrl}
+                          alt={user.fullName || "Avatar"}
+                          className="h-7 w-7 rounded-full object-cover"
+                        />
+                      ) : (
+                        <div className="h-7 w-7 rounded-full bg-card border border-border flex items-center justify-center text-xs font-medium">
+                          {initials}
+                        </div>
+                      )}
+                    </DropdownMenuTrigger>
+
+                    <DropdownMenuContent align="end" sideOffset={8} className="bg-card border-border min-w-[200px]">
+                      <DropdownMenuLabel className="px-2 py-1.5">
+                        <p className="text-sm font-medium truncate">{user?.fullName || user?.firstName || "User"}</p>
+                        <p className="text-xs text-muted-foreground truncate mt-0.5">
+                          {user?.emailAddresses?.[0]?.emailAddress}
+                        </p>
+                      </DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem render={<Link href="/my-listings" />}>
+                        My Listings
+                      </DropdownMenuItem>
+                      <DropdownMenuItem render={<Link href="/messages" />}>
+                        Swap Requests
+                      </DropdownMenuItem>
+                      <DropdownMenuItem render={<Link href="/profile" />}>
+                        Edit Profile
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        className="text-destructive focus:text-destructive"
+                        onClick={() => clerk.signOut()}
+                      >
+                        <LogOut className="h-4 w-4 mr-1.5" />
+                        Sign out
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </>
               )}
 
@@ -141,8 +197,40 @@ export function Navbar() {
                 );
               })}
 
-              {/* Mobile auth buttons */}
-              {!isSignedIn && (
+              {isSignedIn ? (
+                <div className="mt-3 pt-3 border-t border-border/50 flex flex-col gap-1">
+                  <Link
+                    href="/my-listings"
+                    onClick={() => setMobileOpen(false)}
+                    className="text-sm font-medium py-3 px-3 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+                  >
+                    My Listings
+                  </Link>
+                  <Link
+                    href="/messages"
+                    onClick={() => setMobileOpen(false)}
+                    className="text-sm font-medium py-3 px-3 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+                  >
+                    Swap Requests
+                  </Link>
+                  <Link
+                    href="/profile"
+                    onClick={() => setMobileOpen(false)}
+                    className="text-sm font-medium py-3 px-3 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+                  >
+                    Edit Profile
+                  </Link>
+                  <button
+                    onClick={() => {
+                      clerk.signOut();
+                      setMobileOpen(false);
+                    }}
+                    className="text-sm font-medium py-3 px-3 rounded-md text-destructive hover:bg-destructive/10 transition-colors text-left cursor-pointer"
+                  >
+                    Sign out
+                  </button>
+                </div>
+              ) : (
                 <div className="flex gap-3 mt-3 pt-3 border-t border-border/50">
                   <SignInButton mode="modal">
                     <button

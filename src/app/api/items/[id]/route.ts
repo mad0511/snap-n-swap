@@ -1,78 +1,58 @@
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase";
 
-interface DbItem {
-  id: string;
-  title: string;
-  description: string;
-  category: string;
-  brand: string;
-  condition: string;
-  size: string | null;
-  color: string | null;
-  estimated_price: number;
-  asking_price: number;
-  image_url: string;
-  status: string;
-  open_to_swaps: boolean;
-  views: number;
-  user_name: string;
-  user_image: string | null;
-  clerk_user_id: string | null;
-  created_at: string;
-  updated_at: string;
-}
-
-function toFrontend(row: DbItem) {
-  return {
-    id: row.id,
-    title: row.title,
-    description: row.description,
-    category: row.category,
-    brand: row.brand ?? "Unknown",
-    condition: row.condition,
-    size: row.size ?? "",
-    color: row.color ?? "",
-    estimatedPrice: Number(row.estimated_price),
-    askingPrice: Number(row.asking_price),
-    imageUrl: row.image_url,
-    status: row.status,
-    openToSwaps: row.open_to_swaps,
-    views: row.views,
-    userName: row.user_name,
-    userImage: row.user_image ?? "",
-    clerkUserId: row.clerk_user_id ?? "",
-    createdAt: row.created_at,
-  };
-}
-
-export async function GET(
-  _request: Request,
+export async function PATCH(
+  request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
 
   try {
-    // Fetch the item
-    const { data, error } = await supabase
+    const body = await request.json();
+    const { status } = body;
+
+    if (!status) {
+      return Response.json(
+        { error: "Status is required" },
+        { status: 400 }
+      );
+    }
+
+    const { data, error } = await supabaseAdmin
       .from("items")
-      .select("*")
+      .update({ status, updated_at: new Date().toISOString() })
       .eq("id", id)
+      .select()
       .single();
 
     if (error || !data) {
-      return Response.json({ error: "Item not found" }, { status: 404 });
+      console.error("Supabase update item error:", error);
+      return Response.json(
+        { error: "Failed to update item" },
+        { status: 500 }
+      );
     }
 
-    // Increment views (fire-and-forget)
-    supabase
-      .from("items")
-      .update({ views: (data.views ?? 0) + 1 })
-      .eq("id", id)
-      .then(() => {});
-
-    return Response.json(toFrontend(data as DbItem));
-  } catch (err) {
-    console.error("Item GET error:", err);
-    return Response.json({ error: "Item not found" }, { status: 404 });
+    return Response.json({
+      id: data.id,
+      title: data.title,
+      description: data.description,
+      category: data.category,
+      brand: data.brand ?? "Unknown",
+      condition: data.condition,
+      size: data.size ?? "",
+      color: data.color ?? "",
+      estimatedPrice: Number(data.estimated_price),
+      askingPrice: Number(data.asking_price),
+      imageUrl: data.image_url,
+      status: data.status,
+      openToSwaps: data.open_to_swaps,
+      views: data.views,
+      userName: data.user_name,
+      userImage: data.user_image ?? "",
+      clerkUserId: data.clerk_user_id ?? "",
+      createdAt: data.created_at,
+    });
+  } catch {
+    return Response.json({ error: "Invalid request body" }, { status: 400 });
   }
 }

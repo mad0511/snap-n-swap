@@ -49,13 +49,19 @@ function toFrontend(row: DbItem) {
 export async function GET(request: NextRequest) {
   const q = request.nextUrl.searchParams.get("q") ?? undefined;
   const category = request.nextUrl.searchParams.get("category") ?? undefined;
+  const userId = request.nextUrl.searchParams.get("userId") ?? undefined;
 
   try {
     let query = supabase
       .from("items")
       .select("*")
-      .eq("status", "active")
       .order("created_at", { ascending: false });
+
+    if (userId) {
+      query = query.eq("clerk_user_id", userId);
+    } else {
+      query = query.eq("status", "active");
+    }
 
     if (q) {
       const pattern = `%${q}%`;

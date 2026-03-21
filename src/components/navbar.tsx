@@ -1,7 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { usePathname } from "next/navigation";
 import {
   SignInButton,
@@ -9,7 +10,7 @@ import {
   UserButton,
   useAuth,
 } from "@clerk/nextjs";
-import { Camera, ArrowLeftRight } from "lucide-react";
+import { Camera, Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navLinks = [
@@ -21,91 +22,150 @@ const navLinks = [
 export function Navbar() {
   const pathname = usePathname();
   const { isSignedIn } = useAuth();
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <motion.header
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.6, delay: 0.2 }}
-      className="fixed top-0 left-0 right-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-xl"
-    >
-      <div className="mx-auto max-w-[1400px] px-6">
-        <div className="flex h-14 items-center justify-between">
-          {/* Logo — typographic, no icon */}
-          <Link href="/" className="flex items-baseline gap-0.5 group">
-            <span className="text-[15px] font-medium tracking-tight">
-              snap
-            </span>
-            <span className="text-mint text-[15px] font-medium">&apos;</span>
-            <span className="text-[15px] font-medium tracking-tight">n</span>
-            <span className="text-mint text-[15px] font-medium">&apos;</span>
-            <span className="text-[15px] font-medium tracking-tight">swap</span>
-          </Link>
+    <>
+      <motion.header
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.6, delay: 0.2 }}
+        className="fixed top-0 left-0 right-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-xl"
+      >
+        <div className="mx-auto max-w-[1400px] px-6">
+          <div className="flex h-14 items-center justify-between">
+            {/* Logo */}
+            <Link href="/" className="flex items-baseline gap-0.5 group">
+              <span className="text-[15px] font-medium tracking-tight">snap</span>
+              <span className="text-mint text-[15px] font-medium">&apos;</span>
+              <span className="text-[15px] font-medium tracking-tight">n</span>
+              <span className="text-mint text-[15px] font-medium">&apos;</span>
+              <span className="text-[15px] font-medium tracking-tight">swap</span>
+            </Link>
 
-          {/* Nav Links — minimal */}
-          <nav className="hidden md:flex items-center gap-8">
-            {navLinks.map((link) => {
-              const isActive = pathname === link.href || pathname?.startsWith(link.href + "/");
-              return (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className={cn(
-                    "relative text-[13px] font-medium tracking-wide uppercase transition-colors duration-300",
-                    isActive
-                      ? "text-foreground"
-                      : "text-muted-foreground hover:text-foreground"
-                  )}
-                >
-                  {link.label}
-                  {isActive && (
-                    <motion.span
-                      layoutId="nav-underline"
-                      className="absolute -bottom-[18px] left-0 right-0 h-px bg-foreground"
-                      transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                    />
-                  )}
-                </Link>
-              );
-            })}
-          </nav>
+            {/* Desktop nav */}
+            <nav className="hidden md:flex items-center gap-8">
+              {navLinks.map((link) => {
+                const isActive = pathname === link.href || pathname?.startsWith(link.href + "/");
+                return (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    className={cn(
+                      "relative text-[13px] font-medium tracking-wide uppercase transition-colors duration-300",
+                      isActive ? "text-foreground" : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    {link.label}
+                    {isActive && (
+                      <motion.span
+                        layoutId="nav-underline"
+                        className="absolute -bottom-[18px] left-0 right-0 h-px bg-foreground"
+                        transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                      />
+                    )}
+                  </Link>
+                );
+              })}
+            </nav>
 
-          {/* Right side */}
-          <div className="flex items-center gap-4">
-            {!isSignedIn ? (
-              <>
-                <SignInButton mode="modal">
-                  <button className="text-[13px] font-medium text-muted-foreground hover:text-foreground transition-colors cursor-pointer">
-                    Sign in
-                  </button>
-                </SignInButton>
-                <SignUpButton mode="modal">
-                  <button className="text-[13px] font-medium bg-foreground text-background px-4 py-1.5 rounded-full hover:opacity-80 transition-opacity cursor-pointer">
-                    Get started
-                  </button>
-                </SignUpButton>
-              </>
-            ) : (
-              <>
-                <Link
-                  href="/upload"
-                  className="text-[13px] font-medium bg-foreground text-background px-4 py-1.5 rounded-full hover:opacity-80 transition-opacity flex items-center gap-1.5"
-                >
-                  <Camera className="h-3.5 w-3.5" />
-                  Sell
-                </Link>
-                <UserButton
-                  appearance={{
-                    elements: {
-                      avatarBox: "h-7 w-7",
-                    },
-                  }}
-                />
-              </>
-            )}
+            {/* Right side */}
+            <div className="flex items-center gap-4">
+              {!isSignedIn ? (
+                <>
+                  <SignInButton mode="modal">
+                    <button className="hidden sm:block text-[13px] font-medium text-muted-foreground hover:text-foreground transition-colors cursor-pointer">
+                      Sign in
+                    </button>
+                  </SignInButton>
+                  <SignUpButton mode="modal">
+                    <button className="hidden sm:block text-[13px] font-medium bg-foreground text-background px-4 py-1.5 rounded-full hover:opacity-80 transition-opacity cursor-pointer">
+                      Get started
+                    </button>
+                  </SignUpButton>
+                </>
+              ) : (
+                <>
+                  <Link
+                    href="/upload"
+                    className="hidden sm:flex text-[13px] font-medium bg-foreground text-background px-4 py-1.5 rounded-full hover:opacity-80 transition-opacity items-center gap-1.5"
+                  >
+                    <Camera className="h-3.5 w-3.5" />
+                    Sell
+                  </Link>
+                  <UserButton
+                    appearance={{ elements: { avatarBox: "h-7 w-7" } }}
+                  />
+                </>
+              )}
+
+              {/* Mobile hamburger */}
+              <button
+                onClick={() => setMobileOpen(!mobileOpen)}
+                className="md:hidden p-1 text-foreground cursor-pointer"
+              >
+                {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+              </button>
+            </div>
           </div>
         </div>
-      </div>
-    </motion.header>
+      </motion.header>
+
+      {/* Mobile menu overlay */}
+      <AnimatePresence>
+        {mobileOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-x-0 top-14 z-40 bg-background border-b border-border/50 md:hidden"
+          >
+            <nav className="flex flex-col px-6 py-4 gap-1">
+              {navLinks.map((link) => {
+                const isActive = pathname === link.href || pathname?.startsWith(link.href + "/");
+                return (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    onClick={() => setMobileOpen(false)}
+                    className={cn(
+                      "text-sm font-medium py-3 px-3 rounded-md transition-colors",
+                      isActive
+                        ? "text-foreground bg-muted"
+                        : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                    )}
+                  >
+                    {link.label}
+                  </Link>
+                );
+              })}
+
+              {/* Mobile auth buttons */}
+              {!isSignedIn && (
+                <div className="flex gap-3 mt-3 pt-3 border-t border-border/50">
+                  <SignInButton mode="modal">
+                    <button
+                      onClick={() => setMobileOpen(false)}
+                      className="flex-1 text-sm font-medium py-2.5 rounded-md border border-border text-center cursor-pointer"
+                    >
+                      Sign in
+                    </button>
+                  </SignInButton>
+                  <SignUpButton mode="modal">
+                    <button
+                      onClick={() => setMobileOpen(false)}
+                      className="flex-1 text-sm font-medium py-2.5 rounded-full bg-foreground text-background text-center cursor-pointer"
+                    >
+                      Get started
+                    </button>
+                  </SignUpButton>
+                </div>
+              )}
+            </nav>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
   );
 }

@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import { motion } from "framer-motion";
-import { ArrowLeftRight, Check } from "lucide-react";
+import { ArrowLeftRight, Check, Loader2, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -12,7 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { MOCK_ITEMS, type MockItem } from "@/lib/mock-data";
+import type { MockItem } from "@/lib/mock-data";
 
 interface SwapModalProps {
   isOpen: boolean;
@@ -20,15 +20,47 @@ interface SwapModalProps {
   targetItem: MockItem;
 }
 
-const MY_ITEMS = MOCK_ITEMS.slice(3, 6);
-
 export function SwapModal({ isOpen, onClose, targetItem }: SwapModalProps) {
   const [selectedItem, setSelectedItem] = useState<string | null>(null);
   const [message, setMessage] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const [myItems, setMyItems] = useState<MockItem[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const handleSubmit = () => {
+  // Fetch user's own swappable items from Supabase
+  useEffect(() => {
+    if (!isOpen) return;
+    setLoading(true);
+    fetch("/api/items/swappable")
+      .then((res) => res.json())
+      .then((data: MockItem[]) => {
+        // Exclude the target item
+        setMyItems(data.filter((i) => i.id !== targetItem.id));
+      })
+      .catch(() => setMyItems([]))
+      .finally(() => setLoading(false));
+  }, [isOpen, targetItem.id]);
+
+  const handleSubmit = async () => {
+    if (!selectedItem) return;
     setSubmitted(true);
+
+    try {
+      await fetch("/api/swaps", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          initiatorItemId: selectedItem,
+          targetItemId: targetItem.id,
+          initiatorUserId: "current",
+          targetUserId: "owner",
+          message: message || null,
+        }),
+      });
+    } catch {
+      // silent
+    }
+
     setTimeout(() => {
       onClose();
       setSubmitted(false);
@@ -39,7 +71,7 @@ export function SwapModal({ isOpen, onClose, targetItem }: SwapModalProps) {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-lg bg-background border-border">
+      <DialogContent className="sm:max-w-lg bg-background border-border max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-lg font-medium">
             Propose a swap
@@ -70,6 +102,7 @@ export function SwapModal({ isOpen, onClose, targetItem }: SwapModalProps) {
                   alt={targetItem.title}
                   fill
                   className="object-cover"
+                  unoptimized={targetItem.imageUrl.startsWith("data:")}
                 />
               </div>
               <div className="flex-1 min-w-0">
@@ -86,31 +119,46 @@ export function SwapModal({ isOpen, onClose, targetItem }: SwapModalProps) {
             {/* Select your item */}
             <div>
               <p className="text-xs text-muted-foreground mb-2.5">Select your item</p>
-              <div className="grid grid-cols-3 gap-2">
-                {MY_ITEMS.map((item) => (
-                  <button
-                    key={item.id}
-                    onClick={() => setSelectedItem(item.id)}
-                    className={`relative aspect-[3/4] rounded-sm overflow-hidden cursor-pointer transition-all duration-300 ${
-                      selectedItem === item.id
-                        ? "ring-2 ring-foreground ring-offset-2 ring-offset-background"
-                        : "opacity-60 hover:opacity-100"
-                    }`}
-                  >
-                    <Image
-                      src={item.imageUrl}
-                      alt={item.title}
-                      fill
-                      className="object-cover"
-                    />
-                    {selectedItem === item.id && (
-                      <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
-                        <Check className="h-5 w-5 text-white" />
-                      </div>
-                    )}
-                  </button>
-                ))}
-              </div>
+
+              {loading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                </div>
+              ) : myItems.length === 0 ? (
+                <div className="text-center py-8">
+                  <Package className="h-8 w-8 mx-auto text-muted-foreground/20 mb-2" />
+                  <p className="text-sm text-muted-foreground">
+                    No items to swap. List an item first.
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-3 gap-2">
+                  {myItems.map((item) => (
+                    <button
+                      key={item.id}
+                      onClick={() => setSelectedItem(item.id)}
+                      className={`relative aspect-[3/4] rounded-sm overflow-hidden cursor-pointer transition-all duration-300 ${
+                        selectedItem === item.id
+                          ? "ring-2 ring-foreground ring-offset-2 ring-offset-background"
+                          : "opacity-60 hover:opacity-100"
+                      }`}
+                    >
+                      <Image
+                        src={item.imageUrl}
+                        alt={item.title}
+                        fill
+                        className="object-cover"
+                        unoptimized={item.imageUrl.startsWith("data:")}
+                      />
+                      {selectedItem === item.id && (
+                        <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+                          <Check className="h-5 w-5 text-white" />
+                        </div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Message */}

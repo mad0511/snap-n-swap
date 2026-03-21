@@ -108,10 +108,7 @@ export function Navbar() {
                   </Link>
 
                   <DropdownMenu>
-                    <DropdownMenuTrigger
-                      className="outline-none cursor-pointer"
-                      render={<button type="button" aria-label="User menu" />}
-                    >
+                    <DropdownMenuTrigger className="outline-none cursor-pointer">
                       {user?.imageUrl ? (
                         <img
                           src={user.imageUrl}
@@ -133,13 +130,13 @@ export function Navbar() {
                         </p>
                       </DropdownMenuLabel>
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem render={<Link href="/my-listings" />}>
+                      <DropdownMenuItem onClick={() => window.location.href = "/my-listings"}>
                         My Listings
                       </DropdownMenuItem>
-                      <DropdownMenuItem render={<Link href="/messages" />}>
+                      <DropdownMenuItem onClick={() => window.location.href = "/messages"}>
                         Swap Requests
                       </DropdownMenuItem>
-                      <DropdownMenuItem render={<Link href="/profile" />}>
+                      <DropdownMenuItem onClick={() => window.location.href = "/profile"}>
                         Edit Profile
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />

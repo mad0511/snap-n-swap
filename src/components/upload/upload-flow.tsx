@@ -44,6 +44,9 @@ export function UploadFlow() {
   const [submitting, setSubmitting] = useState(false);
   const [removingBg, setRemovingBg] = useState(false);
   const [bgRemoved, setBgRemoved] = useState(false);
+  const [originalPreview, setOriginalPreview] = useState<string | null>(null);
+  const [processedPreview, setProcessedPreview] = useState<string | null>(null);
+  const [useProcessed, setUseProcessed] = useState(true);
 
   // Form state
   const [title, setTitle] = useState("");
@@ -64,20 +67,24 @@ export function UploadFlow() {
     // Remove background and composite on white with shadow
     setRemovingBg(true);
     setBgRemoved(false);
-    const originalUrl = URL.createObjectURL(file);
-    setPreview(originalUrl);
+    setUseProcessed(true);
+    const origUrl = URL.createObjectURL(file);
+    setOriginalPreview(origUrl);
+    setPreview(origUrl);
 
     try {
       const { extractClothing } = await import("@/lib/clothing-extractor");
       const blob = await extractClothing(file);
       const cleanFile = new File([blob], "product.jpg", { type: "image/jpeg" });
-      setPreview(URL.createObjectURL(cleanFile));
+      const cleanUrl = URL.createObjectURL(cleanFile);
+      setProcessedPreview(cleanUrl);
+      setPreview(cleanUrl);
       setProcessedFile(cleanFile);
       setBgRemoved(true);
     } catch (err) {
       console.error("Background removal failed:", err);
-      // Use original if everything fails
       setProcessedFile(file);
+      setUseProcessed(false);
     } finally {
       setRemovingBg(false);
     }
@@ -153,8 +160,8 @@ export function UploadFlow() {
     setError(null);
 
     try {
-      // Use processed (bg-removed) file if available, otherwise original
-      const fileToUpload = processedFile || uploadedFile;
+      // Use the version the user selected (processed or original)
+      const fileToUpload = useProcessed && processedFile ? processedFile : uploadedFile;
       const imageUrl = await fileToBase64(fileToUpload);
 
       const res = await fetch("/api/items", {
@@ -282,22 +289,23 @@ export function UploadFlow() {
             >
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 {/* Image */}
-                <div className="relative aspect-[3/4] rounded-sm overflow-hidden bg-card">
-                  {preview && (
-                    <Image
-                      src={preview}
-                      alt="Upload preview"
-                      fill
-                      className="object-cover"
-                      unoptimized
-                    />
-                  )}
-                  {bgRemoved && !removingBg && (
-                    <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5 bg-black/60 backdrop-blur-sm text-white text-[10px] font-medium px-2 py-1 rounded-sm">
-                      <Scissors className="h-3 w-3" />
-                      Background removed
-                    </div>
-                  )}
+                <div>
+                  <div className="relative aspect-[3/4] rounded-sm overflow-hidden bg-card">
+                    {preview && (
+                      <Image
+                        src={useProcessed && processedPreview ? processedPreview : (originalPreview || preview)}
+                        alt="Upload preview"
+                        fill
+                        className="object-cover"
+                        unoptimized
+                      />
+                    )}
+                    {bgRemoved && !removingBg && useProcessed && (
+                      <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5 bg-black/60 backdrop-blur-sm text-white text-[10px] font-medium px-2 py-1 rounded-sm">
+                        <Scissors className="h-3 w-3" />
+                        BG removed
+                      </div>
+                    )}
                   {(removingBg || analyzing) && (
                     <div className="absolute inset-0 bg-background/50 flex items-center justify-center">
                       <div className="text-center">
@@ -306,6 +314,33 @@ export function UploadFlow() {
                           {removingBg ? "Removing background..." : "Analyzing..."}
                         </p>
                       </div>
+                    </div>
+                  )}
+                  </div>
+
+                  {/* Original vs Processed toggle */}
+                  {bgRemoved && !removingBg && processedPreview && originalPreview && (
+                    <div className="flex gap-1.5 mt-3">
+                      <button
+                        onClick={() => setUseProcessed(false)}
+                        className={`flex-1 text-xs font-medium py-2 rounded-md transition-colors cursor-pointer ${
+                          !useProcessed
+                            ? "bg-foreground text-background"
+                            : "bg-card border border-border text-muted-foreground hover:text-foreground"
+                        }`}
+                      >
+                        Original photo
+                      </button>
+                      <button
+                        onClick={() => setUseProcessed(true)}
+                        className={`flex-1 text-xs font-medium py-2 rounded-md transition-colors cursor-pointer ${
+                          useProcessed
+                            ? "bg-foreground text-background"
+                            : "bg-card border border-border text-muted-foreground hover:text-foreground"
+                        }`}
+                      >
+                        AI cleaned
+                      </button>
                     </div>
                   )}
                 </div>

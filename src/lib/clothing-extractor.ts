@@ -1,21 +1,42 @@
 /**
  * Clothing Extractor
  *
- * Step 1: Remove background using @imgly/background-removal (reliable, runs in browser)
- * Step 2: Composite the extracted subject onto a clean white background with drop shadow
+ * Priority:
+ * 1. Server-side: remove.bg API (best quality, 50 free/month)
+ * 2. Client-side: @imgly/background-removal (unlimited, runs in browser)
  *
- * This gives a professional product-photo look: item on white with subtle shadow.
+ * Both produce: item on white background with subtle drop shadow.
  */
 
 export async function extractClothing(imageFile: File): Promise<Blob> {
-  const { removeBackground } = await import("@imgly/background-removal");
+  // Try server-side API first (remove.bg or similar)
+  try {
+    const formData = new FormData();
+    formData.append("image", imageFile);
 
-  // Step 1: Remove background → transparent PNG
+    const res = await fetch("/api/remove-bg", {
+      method: "POST",
+      body: formData,
+    });
+
+    if (res.ok) {
+      const contentType = res.headers.get("content-type") || "";
+      if (contentType.includes("image")) {
+        // Server returned a processed image — add white bg + shadow
+        const blob = await res.blob();
+        return compositeOnWhite(blob);
+      }
+    }
+  } catch {
+    // Server unavailable, fall back to client
+  }
+
+  // Client-side fallback
+  const { removeBackground } = await import("@imgly/background-removal");
   const transparentBlob = await removeBackground(imageFile, {
     output: { format: "image/png", quality: 0.95 },
   });
 
-  // Step 2: Composite onto white background with shadow
   return compositeOnWhite(transparentBlob);
 }
 
@@ -27,7 +48,6 @@ async function compositeOnWhite(transparentBlob: Blob): Promise<Blob> {
     const width = img.naturalWidth;
     const height = img.naturalHeight;
 
-    // Add padding for shadow
     const padding = Math.round(Math.max(width, height) * 0.06);
     const canvasW = width + padding * 2;
     const canvasH = height + padding * 2;
@@ -41,24 +61,20 @@ async function compositeOnWhite(transparentBlob: Blob): Promise<Blob> {
     ctx.fillStyle = "#FFFFFF";
     ctx.fillRect(0, 0, canvasW, canvasH);
 
-    // Drop shadow — draw the image offset and blurred, then draw the real image on top
+    // Drop shadow
     ctx.save();
-    ctx.shadowColor = "rgba(0, 0, 0, 0.15)";
-    ctx.shadowBlur = Math.round(padding * 0.8);
+    ctx.shadowColor = "rgba(0, 0, 0, 0.12)";
+    ctx.shadowBlur = Math.round(padding * 0.7);
     ctx.shadowOffsetX = 0;
-    ctx.shadowOffsetY = Math.round(padding * 0.3);
+    ctx.shadowOffsetY = Math.round(padding * 0.25);
     ctx.drawImage(img, padding, padding, width, height);
     ctx.restore();
 
-    // Draw the actual image on top (without shadow) for crisp edges
+    // Crisp image on top
     ctx.drawImage(img, padding, padding, width, height);
 
     return new Promise<Blob>((resolve) => {
-      canvas.toBlob(
-        (blob) => resolve(blob || new Blob()),
-        "image/jpeg",
-        0.92
-      );
+      canvas.toBlob((blob) => resolve(blob || new Blob()), "image/jpeg", 0.92);
     });
   } finally {
     URL.revokeObjectURL(url);

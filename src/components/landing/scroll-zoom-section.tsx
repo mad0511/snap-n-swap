@@ -1,23 +1,19 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useEffect, useState } from "react";
 import Image from "next/image";
 import { motion, useScroll, useTransform, MotionValue } from "framer-motion";
+import type { MockItem } from "@/lib/mock-data";
 
-const ITEMS = [
-  { src: "https://images.unsplash.com/photo-1551028719-00167b16eac5?w=800&h=1000&fit=crop", label: "Jackets" },
-  { src: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=800&h=1000&fit=crop", label: "Sneakers" },
-  { src: "https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=800&h=1000&fit=crop", label: "Dresses" },
-  { src: "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=800&h=1000&fit=crop", label: "Accessories" },
-  { src: "https://images.unsplash.com/photo-1576566588028-4147f3842f27?w=800&h=1000&fit=crop", label: "Knitwear" },
-];
-
-function Card({ src, label, index, spread, cardScale }: {
+function Card({ src, label, index, spread, cardScale, isDataUrl }: {
   src: string; label: string; index: number;
   spread: MotionValue<number>; cardScale: MotionValue<number>;
+  isDataUrl: boolean;
 }) {
-  const angle = (index - 2) * 15;
-  const xOffset = (index - 2) * 280;
+  const total = 5;
+  const centerIdx = Math.floor(total / 2);
+  const angle = (index - centerIdx) * 15;
+  const xOffset = (index - centerIdx) * 280;
   const x = useTransform(spread, [0, 1], [0, xOffset]);
   const rotate = useTransform(spread, [0, 1], [0, angle]);
 
@@ -26,7 +22,7 @@ function Card({ src, label, index, spread, cardScale }: {
       style={{ scale: cardScale, x, rotate }}
       className="absolute w-[280px] md:w-[320px] aspect-[3/4] rounded-md overflow-hidden"
     >
-      <Image src={src} alt={label} fill className="object-cover" sizes="320px" />
+      <Image src={src} alt={label} fill className="object-cover" sizes="320px" unoptimized={isDataUrl} />
       <div className="absolute inset-0 bg-black/20" />
       <p className="absolute bottom-4 left-4 text-white text-sm font-medium tracking-wide">{label}</p>
     </motion.div>
@@ -37,25 +33,41 @@ export function ScrollZoomSection() {
   const containerRef = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({
     target: containerRef,
-    // Animation runs from when section enters viewport to when it leaves
     offset: ["start end", "end start"],
   });
 
-  // Cards start spread out, converge to center mid-scroll, then stay
+  const [cards, setCards] = useState<{ src: string; label: string; isDataUrl: boolean }[]>([]);
+
+  useEffect(() => {
+    fetch("/api/items")
+      .then((res) => res.json())
+      .then((data: MockItem[]) => {
+        if (data.length >= 3) {
+          setCards(data.slice(0, 5).map((item) => ({
+            src: item.imageUrl,
+            label: item.category,
+            isDataUrl: item.imageUrl.startsWith("data:"),
+          })));
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   const spread = useTransform(scrollYProgress, [0.1, 0.5], [1, 0]);
   const cardScale = useTransform(scrollYProgress, [0.1, 0.35, 0.55], [0.65, 1.05, 0.9]);
   const containerOpacity = useTransform(scrollYProgress, [0.05, 0.2, 0.65, 0.8], [0, 1, 1, 0]);
-
-  // Text zooms in as you scroll through
   const textScale = useTransform(scrollYProgress, [0.15, 0.45, 0.6], [0.4, 1, 1.6]);
   const textOpacity = useTransform(scrollYProgress, [0.15, 0.35, 0.55, 0.7], [0, 1, 1, 0]);
+
+  // Hide section if not enough items
+  if (cards.length < 3) return null;
 
   return (
     <section ref={containerRef} className="relative h-[100vh]">
       <div className="sticky top-0 h-screen overflow-hidden flex items-center justify-center">
         <motion.div style={{ opacity: containerOpacity }} className="absolute inset-0 flex items-center justify-center">
-          {ITEMS.map((item, i) => (
-            <Card key={i} src={item.src} label={item.label} index={i} spread={spread} cardScale={cardScale} />
+          {cards.map((item, i) => (
+            <Card key={i} src={item.src} label={item.label} index={i} spread={spread} cardScale={cardScale} isDataUrl={item.isDataUrl} />
           ))}
           <motion.div style={{ scale: textScale, opacity: textOpacity }} className="relative z-20 text-center px-6">
             <h2 className="font-[family-name:var(--font-playfair)] text-[clamp(3rem,8vw,7rem)] font-medium tracking-[-0.04em] leading-[0.95] text-white mix-blend-difference">

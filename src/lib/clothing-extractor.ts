@@ -1,133 +1,76 @@
 /**
- * Clothing Extractor — isolates clothing items from a person photo.
- * Uses mattmdjaga/segformer_b2_clothes via @huggingface/transformers (runs in browser).
+ * Clothing Extractor
  *
- * Segmentation labels:
- * 0: Background, 1: Hat, 2: Hair, 3: Sunglasses, 4: Upper-clothes,
- * 5: Skirt, 6: Pants, 7: Dress, 8: Belt, 9: Left-shoe, 10: Right-shoe,
- * 11: Face, 12: Left-leg, 13: Right-leg, 14: Left-arm, 15: Right-arm,
- * 16: Bag, 17: Scarf
+ * Step 1: Remove background using @imgly/background-removal (reliable, runs in browser)
+ * Step 2: Composite the extracted subject onto a clean white background with drop shadow
  *
- * We keep: 1(Hat), 4(Upper-clothes), 5(Skirt), 6(Pants), 7(Dress),
- *          8(Belt), 9(Left-shoe), 10(Right-shoe), 16(Bag), 17(Scarf)
- * We remove: 0(Background), 2(Hair), 3(Sunglasses), 11(Face),
- *            12-15(Legs/Arms)
+ * This gives a professional product-photo look: item on white with subtle shadow.
  */
 
-// Clothing label IDs to KEEP
-const CLOTHING_LABELS = new Set([1, 4, 5, 6, 7, 8, 9, 10, 16, 17]);
-
 export async function extractClothing(imageFile: File): Promise<Blob> {
-  // Dynamically import to avoid SSR issues
-  const { pipeline, RawImage } = await import("@huggingface/transformers");
+  const { removeBackground } = await import("@imgly/background-removal");
 
-  // Load the segmentation pipeline (cached after first load)
-  const segmenter = await pipeline(
-    "image-segmentation",
-    "mattmdjaga/segformer_b2_clothes",
-    {
-      device: "wasm",
-    }
-  );
+  // Step 1: Remove background → transparent PNG
+  const transparentBlob = await removeBackground(imageFile, {
+    output: { format: "image/png", quality: 0.95 },
+  });
 
-  // Create object URL for the image
-  const imageUrl = URL.createObjectURL(imageFile);
+  // Step 2: Composite onto white background with shadow
+  return compositeOnWhite(transparentBlob);
+}
+
+async function compositeOnWhite(transparentBlob: Blob): Promise<Blob> {
+  const url = URL.createObjectURL(transparentBlob);
 
   try {
-    // Run segmentation
-    const results = await segmenter(imageUrl);
+    const img = await loadImage(url);
+    const width = img.naturalWidth;
+    const height = img.naturalHeight;
 
-    // Load the original image to get pixel data
-    const img = await RawImage.fromURL(imageUrl);
-    const width = img.width;
-    const height = img.height;
+    // Add padding for shadow
+    const padding = Math.round(Math.max(width, height) * 0.06);
+    const canvasW = width + padding * 2;
+    const canvasH = height + padding * 2;
 
-    // Create canvas for output
     const canvas = document.createElement("canvas");
-    canvas.width = width;
-    canvas.height = height;
+    canvas.width = canvasW;
+    canvas.height = canvasH;
     const ctx = canvas.getContext("2d")!;
 
-    // Draw original image
-    const htmlImg = new Image();
-    htmlImg.crossOrigin = "anonymous";
-    await new Promise<void>((resolve) => {
-      htmlImg.onload = () => resolve();
-      htmlImg.src = imageUrl;
-    });
-    ctx.drawImage(htmlImg, 0, 0, width, height);
+    // White background
+    ctx.fillStyle = "#FFFFFF";
+    ctx.fillRect(0, 0, canvasW, canvasH);
 
-    // Get pixel data
-    const imageData = ctx.getImageData(0, 0, width, height);
-    const pixels = imageData.data;
+    // Drop shadow — draw the image offset and blurred, then draw the real image on top
+    ctx.save();
+    ctx.shadowColor = "rgba(0, 0, 0, 0.15)";
+    ctx.shadowBlur = Math.round(padding * 0.8);
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = Math.round(padding * 0.3);
+    ctx.drawImage(img, padding, padding, width, height);
+    ctx.restore();
 
-    // Create a clothing mask from segmentation results
-    const clothingMask = new Uint8Array(width * height);
+    // Draw the actual image on top (without shadow) for crisp edges
+    ctx.drawImage(img, padding, padding, width, height);
 
-    if (Array.isArray(results)) {
-      for (const segment of results) {
-        // Check if this segment's label is a clothing item
-        const label = segment.label?.toLowerCase() || "";
-        const isClothing =
-          label.includes("upper") ||
-          label.includes("clothes") ||
-          label.includes("pants") ||
-          label.includes("skirt") ||
-          label.includes("dress") ||
-          label.includes("shoe") ||
-          label.includes("belt") ||
-          label.includes("bag") ||
-          label.includes("scarf") ||
-          label.includes("hat") ||
-          label.includes("coat") ||
-          label.includes("jacket");
-
-        if (isClothing && segment.mask) {
-          // The mask is a RawImage — get its data
-          const maskData = segment.mask.data;
-          if (maskData) {
-            for (let i = 0; i < maskData.length; i++) {
-              if (maskData[i] > 0) {
-                clothingMask[i] = 1;
-              }
-            }
-          }
-        }
-      }
-    }
-
-    // Apply mask: make non-clothing pixels transparent
-    let hasClothingPixels = false;
-    for (let i = 0; i < clothingMask.length; i++) {
-      if (clothingMask[i] === 1) {
-        hasClothingPixels = true;
-      } else {
-        // Set alpha to 0 (transparent)
-        pixels[i * 4 + 3] = 0;
-      }
-    }
-
-    // If no clothing detected, fall back to background removal only
-    if (!hasClothingPixels) {
-      // Return original with just bg removal
-      const { removeBackground } = await import("@imgly/background-removal");
-      return await removeBackground(imageFile, {
-        output: { format: "image/png", quality: 0.9 },
-      });
-    }
-
-    // Put modified pixels back
-    ctx.putImageData(imageData, 0, 0);
-
-    // Convert to blob
     return new Promise<Blob>((resolve) => {
       canvas.toBlob(
         (blob) => resolve(blob || new Blob()),
-        "image/png",
-        0.9
+        "image/jpeg",
+        0.92
       );
     });
   } finally {
-    URL.revokeObjectURL(imageUrl);
+    URL.revokeObjectURL(url);
   }
+}
+
+function loadImage(src: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = src;
+  });
 }

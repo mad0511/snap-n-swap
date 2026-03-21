@@ -7,13 +7,14 @@ export async function POST(req: Request) {
       return Response.json({ error: "No image" }, { status: 400 });
     }
 
-    // Use local rembg server with u2net_cloth_seg model
-    // This model keeps ONLY clothing and removes the person's body/face/hands
     const rembgUrl = process.env.REMBG_URL || "http://localhost:7100";
+
+    // model must be a form field, not a query param
     const apiForm = new FormData();
     apiForm.append("file", imageFile);
+    apiForm.append("model", "u2net_cloth_seg");
 
-    const res = await fetch(`${rembgUrl}/api/remove?model=u2net_cloth_seg`, {
+    const res = await fetch(`${rembgUrl}/api/remove`, {
       method: "POST",
       body: apiForm,
     });

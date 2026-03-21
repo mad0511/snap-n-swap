@@ -4,7 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Eye, ArrowLeftRight, ArrowLeft } from "lucide-react";
+import { Eye, ArrowLeftRight, ArrowLeft, Pencil } from "lucide-react";
 import { useUser } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -104,29 +104,36 @@ export function ItemDetail({ item, relatedItems }: ItemDetailProps) {
             </div>
 
             {/* Actions */}
-            <div className="flex gap-2 mb-8">
-              {isOwnItem ? (
-                <div className="flex-1 text-center py-3 text-sm text-muted-foreground border border-border rounded-md">
-                  This is your listing
+            {isOwnItem ? (
+              <div className="mb-8 space-y-3">
+                <div className="flex items-center gap-2 px-4 py-3 rounded-md bg-mint/8 border border-mint/15">
+                  <div className="h-2 w-2 rounded-full bg-mint" />
+                  <span className="text-sm font-medium text-mint">Listed by you</span>
                 </div>
-              ) : (
-                <>
-                  <Button
-                    onClick={handleBuy}
-                    className="flex-1 bg-foreground text-background hover:opacity-80 py-3"
-                  >
-                    Buy now
+                <Link href={`/edit/${item.id}`}>
+                  <Button variant="outline" className="w-full py-3">
+                    <Pencil className="h-4 w-4 mr-2" />
+                    Edit listing
                   </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => setSwapOpen(true)}
-                    className="px-4 py-3"
-                  >
-                    <ArrowLeftRight className="h-4 w-4" />
-                  </Button>
-                </>
-              )}
-            </div>
+                </Link>
+              </div>
+            ) : (
+              <div className="flex gap-2 mb-8">
+                <Button
+                  onClick={handleBuy}
+                  className="flex-1 bg-foreground text-background hover:opacity-80 py-3"
+                >
+                  Buy now
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setSwapOpen(true)}
+                  className="px-4 py-3"
+                >
+                  <ArrowLeftRight className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
 
             <div className="hr-accent mb-8" />
 

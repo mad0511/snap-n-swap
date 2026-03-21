@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { usePathname } from "next/navigation";
@@ -11,16 +11,8 @@ import {
   useUser,
   useClerk,
 } from "@clerk/nextjs";
-import { Camera, Menu, X, LogOut } from "lucide-react";
+import { Camera, Menu, X, LogOut, Package, ArrowLeftRight, User } from "lucide-react";
 import { cn } from "@/lib/utils";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-  DropdownMenuLabel,
-} from "@/components/ui/dropdown-menu";
 
 const navLinks = [
   { href: "/marketplace", label: "Marketplace" },
@@ -28,14 +20,114 @@ const navLinks = [
   { href: "/messages", label: "Swaps" },
 ];
 
+function UserMenu() {
+  const { user } = useUser();
+  const clerk = useClerk();
+  const [open, setOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Close on outside click
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    if (open) document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [open]);
+
+  const initials = user?.firstName?.[0] ?? "?";
+
+  return (
+    <div ref={menuRef} className="relative">
+      <button
+        onClick={() => setOpen(!open)}
+        className="outline-none cursor-pointer"
+      >
+        {user?.imageUrl ? (
+          <img
+            src={user.imageUrl}
+            alt=""
+            className="h-7 w-7 rounded-full object-cover"
+          />
+        ) : (
+          <div className="h-7 w-7 rounded-full bg-card border border-border flex items-center justify-center text-xs font-medium">
+            {initials}
+          </div>
+        )}
+      </button>
+
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, y: -5, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -5, scale: 0.95 }}
+            transition={{ duration: 0.15 }}
+            className="absolute right-0 top-10 w-52 bg-card border border-border rounded-lg shadow-xl shadow-black/30 overflow-hidden z-50"
+          >
+            {/* User info */}
+            <div className="px-3 py-2.5 border-b border-border">
+              <p className="text-sm font-medium truncate">
+                {user?.fullName || user?.firstName || "User"}
+              </p>
+              <p className="text-[11px] text-muted-foreground truncate">
+                {user?.emailAddresses?.[0]?.emailAddress}
+              </p>
+            </div>
+
+            {/* Links */}
+            <div className="py-1">
+              <Link
+                href="/my-listings"
+                onClick={() => setOpen(false)}
+                className="flex items-center gap-2.5 px-3 py-2 text-sm text-foreground hover:bg-muted/50 transition-colors"
+              >
+                <Package className="h-4 w-4 text-muted-foreground" />
+                My Listings
+              </Link>
+              <Link
+                href="/messages"
+                onClick={() => setOpen(false)}
+                className="flex items-center gap-2.5 px-3 py-2 text-sm text-foreground hover:bg-muted/50 transition-colors"
+              >
+                <ArrowLeftRight className="h-4 w-4 text-muted-foreground" />
+                Swap Requests
+              </Link>
+              <Link
+                href="/profile"
+                onClick={() => setOpen(false)}
+                className="flex items-center gap-2.5 px-3 py-2 text-sm text-foreground hover:bg-muted/50 transition-colors"
+              >
+                <User className="h-4 w-4 text-muted-foreground" />
+                Edit Profile
+              </Link>
+            </div>
+
+            {/* Sign out */}
+            <div className="border-t border-border py-1">
+              <button
+                onClick={() => { clerk.signOut(); setOpen(false); }}
+                className="flex items-center gap-2.5 px-3 py-2 text-sm text-destructive hover:bg-destructive/10 transition-colors w-full cursor-pointer"
+              >
+                <LogOut className="h-4 w-4" />
+                Sign out
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
 export function Navbar() {
   const pathname = usePathname();
   const { isSignedIn } = useAuth();
   const { user } = useUser();
   const clerk = useClerk();
   const [mobileOpen, setMobileOpen] = useState(false);
-
-  const initials = user?.firstName?.[0] ?? user?.emailAddresses?.[0]?.emailAddress?.[0]?.toUpperCase() ?? "?";
 
   return (
     <>
@@ -106,49 +198,7 @@ export function Navbar() {
                     <Camera className="h-3.5 w-3.5" />
                     Sell
                   </Link>
-
-                  <DropdownMenu>
-                    <DropdownMenuTrigger className="outline-none cursor-pointer">
-                      {user?.imageUrl ? (
-                        <img
-                          src={user.imageUrl}
-                          alt={user.fullName || "Avatar"}
-                          className="h-7 w-7 rounded-full object-cover"
-                        />
-                      ) : (
-                        <div className="h-7 w-7 rounded-full bg-card border border-border flex items-center justify-center text-xs font-medium">
-                          {initials}
-                        </div>
-                      )}
-                    </DropdownMenuTrigger>
-
-                    <DropdownMenuContent align="end" sideOffset={8} className="bg-card border-border min-w-[200px]">
-                      <DropdownMenuLabel className="px-2 py-1.5">
-                        <p className="text-sm font-medium truncate">{user?.fullName || user?.firstName || "User"}</p>
-                        <p className="text-xs text-muted-foreground truncate mt-0.5">
-                          {user?.emailAddresses?.[0]?.emailAddress}
-                        </p>
-                      </DropdownMenuLabel>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={() => window.location.href = "/my-listings"}>
-                        My Listings
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => window.location.href = "/messages"}>
-                        Swap Requests
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => window.location.href = "/profile"}>
-                        Edit Profile
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        className="text-destructive focus:text-destructive"
-                        onClick={() => clerk.signOut()}
-                      >
-                        <LogOut className="h-4 w-4 mr-1.5" />
-                        Sign out
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  <UserMenu />
                 </>
               )}
 
@@ -164,7 +214,7 @@ export function Navbar() {
         </div>
       </motion.header>
 
-      {/* Mobile menu overlay */}
+      {/* Mobile menu */}
       <AnimatePresence>
         {mobileOpen && (
           <motion.div
@@ -196,32 +246,20 @@ export function Navbar() {
 
               {isSignedIn ? (
                 <div className="mt-3 pt-3 border-t border-border/50 flex flex-col gap-1">
-                  <Link
-                    href="/my-listings"
-                    onClick={() => setMobileOpen(false)}
-                    className="text-sm font-medium py-3 px-3 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
-                  >
+                  <Link href="/my-listings" onClick={() => setMobileOpen(false)}
+                    className="text-sm font-medium py-3 px-3 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors">
                     My Listings
                   </Link>
-                  <Link
-                    href="/messages"
-                    onClick={() => setMobileOpen(false)}
-                    className="text-sm font-medium py-3 px-3 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
-                  >
+                  <Link href="/messages" onClick={() => setMobileOpen(false)}
+                    className="text-sm font-medium py-3 px-3 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors">
                     Swap Requests
                   </Link>
-                  <Link
-                    href="/profile"
-                    onClick={() => setMobileOpen(false)}
-                    className="text-sm font-medium py-3 px-3 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
-                  >
+                  <Link href="/profile" onClick={() => setMobileOpen(false)}
+                    className="text-sm font-medium py-3 px-3 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors">
                     Edit Profile
                   </Link>
                   <button
-                    onClick={() => {
-                      clerk.signOut();
-                      setMobileOpen(false);
-                    }}
+                    onClick={() => { clerk.signOut(); setMobileOpen(false); }}
                     className="text-sm font-medium py-3 px-3 rounded-md text-destructive hover:bg-destructive/10 transition-colors text-left cursor-pointer"
                   >
                     Sign out
@@ -230,18 +268,14 @@ export function Navbar() {
               ) : (
                 <div className="flex gap-3 mt-3 pt-3 border-t border-border/50">
                   <SignInButton mode="modal">
-                    <button
-                      onClick={() => setMobileOpen(false)}
-                      className="flex-1 text-sm font-medium py-2.5 rounded-md border border-border text-center cursor-pointer"
-                    >
+                    <button onClick={() => setMobileOpen(false)}
+                      className="flex-1 text-sm font-medium py-2.5 rounded-md border border-border text-center cursor-pointer">
                       Sign in
                     </button>
                   </SignInButton>
                   <SignUpButton mode="modal">
-                    <button
-                      onClick={() => setMobileOpen(false)}
-                      className="flex-1 text-sm font-medium py-2.5 rounded-full bg-foreground text-background text-center cursor-pointer"
-                    >
+                    <button onClick={() => setMobileOpen(false)}
+                      className="flex-1 text-sm font-medium py-2.5 rounded-full bg-foreground text-background text-center cursor-pointer">
                       Get started
                     </button>
                   </SignUpButton>

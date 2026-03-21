@@ -9,11 +9,11 @@ import type { MockItem } from "@/lib/mock-data";
 
 // Static showcase images — decorative placeholders when no real items exist
 const SHOWCASE = [
-  { title: "Denim Jacket", brand: "Vintage", price: 85, src: "https://images.unsplash.com/photo-1523205771623-e0faa4d2813d?w=600&h=800&fit=crop" },
+  { title: "Denim Jacket", brand: "Vintage", price: 85, src: "https://images.unsplash.com/photo-1543076447-215ad9ba6923?w=800&h=800&fit=crop" },
   { title: "Canvas Sneakers", brand: "Converse", price: 45, src: "https://images.unsplash.com/photo-1525966222134-fcfa99b8ae77?w=600&h=800&fit=crop" },
-  { title: "Wool Overcoat", brand: "COS", price: 160, src: "https://images.unsplash.com/photo-1539533113208-f6df8cc8b543?w=600&h=800&fit=crop" },
+  { title: "Wool Overcoat", brand: "COS", price: 160, src: "https://images.unsplash.com/photo-1544022613-e87ca75a784a?w=600&h=800&fit=crop" },
   { title: "Silk Blouse", brand: "Zara", price: 55, src: "https://images.unsplash.com/photo-1564257631407-4deb1f99d992?w=600&h=800&fit=crop" },
-  { title: "Leather Boots", brand: "Dr. Martens", price: 120, src: "https://images.unsplash.com/photo-1605812860427-4024433a70fd?w=600&h=800&fit=crop" },
+  { title: "Leather Boots", brand: "Dr. Martens", price: 120, src: "https://images.unsplash.com/photo-1608256246200-53e635b5b65f?w=600&h=800&fit=crop" },
 ];
 
 export function FeaturedItems() {

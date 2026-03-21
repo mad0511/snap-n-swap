@@ -1,15 +1,17 @@
 /**
  * Clothing Extractor
  *
- * Priority:
- * 1. Server-side: remove.bg API (best quality, 50 free/month)
- * 2. Client-side: @imgly/background-removal (unlimited, runs in browser)
+ * Uses rembg server with u2net_cloth_seg model to:
+ * 1. Detect clothing regions (shirt, pants, jacket, etc.)
+ * 2. Remove person's face, hands, skin, hair
+ * 3. Keep ONLY the clothing items
+ * 4. Composite on white background with drop shadow
  *
- * Both produce: item on white background with subtle drop shadow.
+ * Falls back to @imgly/background-removal if rembg server is unavailable.
  */
 
 export async function extractClothing(imageFile: File): Promise<Blob> {
-  // Try server-side API first (remove.bg or similar)
+  // Try server-side cloth segmentation (rembg + u2net_cloth_seg)
   try {
     const formData = new FormData();
     formData.append("image", imageFile);
@@ -22,21 +24,19 @@ export async function extractClothing(imageFile: File): Promise<Blob> {
     if (res.ok) {
       const contentType = res.headers.get("content-type") || "";
       if (contentType.includes("image")) {
-        // Server returned a processed image — add white bg + shadow
         const blob = await res.blob();
         return compositeOnWhite(blob);
       }
     }
   } catch {
-    // Server unavailable, fall back to client
+    // Server unavailable
   }
 
-  // Client-side fallback
+  // Fallback: client-side background removal (removes bg but keeps person)
   const { removeBackground } = await import("@imgly/background-removal");
   const transparentBlob = await removeBackground(imageFile, {
     output: { format: "image/png", quality: 0.95 },
   });
-
   return compositeOnWhite(transparentBlob);
 }
 

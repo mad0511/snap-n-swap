@@ -1,6 +1,4 @@
 export async function POST(req: Request) {
-  const apiKey = process.env.REMOVE_BG_API_KEY;
-
   try {
     const formData = await req.formData();
     const imageFile = formData.get("image") as File;
@@ -9,30 +7,25 @@ export async function POST(req: Request) {
       return Response.json({ error: "No image" }, { status: 400 });
     }
 
-    // If remove.bg API key is available, use it (best quality)
-    if (apiKey) {
-      const apiForm = new FormData();
-      apiForm.append("image_file", imageFile);
-      apiForm.append("size", "auto");
-      apiForm.append("bg_color", "FFFFFF");
+    // Use local rembg server with u2net_cloth_seg model
+    // This model keeps ONLY clothing and removes the person's body/face/hands
+    const rembgUrl = process.env.REMBG_URL || "http://localhost:7100";
+    const apiForm = new FormData();
+    apiForm.append("file", imageFile);
 
-      const res = await fetch("https://api.remove.bg/v1.0/removebg", {
-        method: "POST",
-        headers: { "X-Api-Key": apiKey },
-        body: apiForm,
+    const res = await fetch(`${rembgUrl}/api/remove?model=u2net_cloth_seg`, {
+      method: "POST",
+      body: apiForm,
+    });
+
+    if (res.ok) {
+      const buffer = await res.arrayBuffer();
+      return new Response(buffer, {
+        headers: { "Content-Type": "image/png" },
       });
-
-      if (res.ok) {
-        const buffer = await res.arrayBuffer();
-        return new Response(buffer, {
-          headers: { "Content-Type": "image/png" },
-        });
-      }
-
-      console.error("remove.bg error:", res.status, await res.text());
     }
 
-    // Fallback: return null so the client uses @imgly
+    console.error("rembg error:", res.status);
     return Response.json({ fallback: true });
   } catch (error) {
     console.error("BG removal error:", error);

@@ -167,6 +167,7 @@ export const MOCK_ITEMS: MockItem[] = [
 export const CATEGORIES = [
   "All",
   "Jackets",
+  "Shirts",
   "Shoes",
   "Sweaters",
   "Jeans",

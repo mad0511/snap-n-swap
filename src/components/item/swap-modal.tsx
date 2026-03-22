@@ -29,19 +29,19 @@ export function SwapModal({ isOpen, onClose, targetItem }: SwapModalProps) {
   const [myItems, setMyItems] = useState<MockItem[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Fetch user's own swappable items from Supabase
+  // Fetch current user's own items to offer for swap
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen || !user?.id) return;
     setLoading(true);
-    fetch(`/api/items/swappable${user?.id ? `?excludeUser=${user.id}` : ""}`)
+    fetch(`/api/items?userId=${user.id}`)
       .then((res) => res.json())
       .then((data: MockItem[]) => {
-        // Exclude the target item
-        setMyItems(data.filter((i) => i.id !== targetItem.id));
+        // Only show active items, exclude the target
+        setMyItems(data.filter((i) => i.id !== targetItem.id && i.status === "active"));
       })
       .catch(() => setMyItems([]))
       .finally(() => setLoading(false));
-  }, [isOpen, targetItem.id]);
+  }, [isOpen, targetItem.id, user?.id]);
 
   const handleSubmit = async () => {
     if (!selectedItem) return;
@@ -108,7 +108,7 @@ export function SwapModal({ isOpen, onClose, targetItem }: SwapModalProps) {
                 />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-xs text-muted-foreground">Their item</p>
+                <p className="text-xs text-muted-foreground">You want this</p>
                 <p className="text-sm font-medium truncate">{targetItem.title}</p>
               </div>
               <p className="font-mono text-sm tabular-nums">${targetItem.askingPrice}</p>
@@ -120,7 +120,7 @@ export function SwapModal({ isOpen, onClose, targetItem }: SwapModalProps) {
 
             {/* Select your item */}
             <div>
-              <p className="text-xs text-muted-foreground mb-2.5">Select your item</p>
+              <p className="text-xs text-muted-foreground mb-2.5">Offer one of your items</p>
 
               {loading ? (
                 <div className="flex items-center justify-center py-8">
